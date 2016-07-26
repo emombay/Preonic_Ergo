@@ -53,7 +53,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   {KC_Q,         KC_D,    KC_R,    KC_W,              KC_B,    KC_DEL,   M(CTRLWIN),  KC_J,    KC_F,    KC_U,    KC_P,    KC_SCLN},
   {KC_A,         KC_S,    KC_H,    KC_T,              KC_G,    KC_UNDS,	 MEH_T(XXX),  KC_Y,    KC_N,    KC_E,    KC_O,    KC_I},
   {SFT_T(KC_Z),  KC_X,    KC_M,    KC_C,              KC_V,    KC_LCTL,  RAISE,       KC_K,    KC_L,    KC_COMM, KC_DOT,  SFT_T(KC_SLSH)},
-  {M(ALTTAB),    M(4),    KC_LGUI, LT(_CODE,KC_ESC),  LOWER,   KC_BSPC,  KC_ENT,      KC_SPC,  KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT}
+  {M(ALTTAB),    KC_LGUI, KC_LALT, LT(_CODE,KC_ESC),  LOWER,   KC_BSPC,  KC_ENT,      KC_SPC,  KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT}
 },
 
 /* Qwerty
@@ -179,7 +179,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   {LSFT(KC_EQL),  KC_EQL,      KC_LCBR, KC_RCBR, KC_PIPE, _______, _______, _______, _______, _______, _______, _______},
   {LSFT(KC_7),    KC_MINS,     KC_LPRN, KC_RPRN, KC_GRV,  _______, _______, _______, _______, _______, _______, _______},
   {LSFT(KC_COMM),LSFT(KC_DOT), KC_LBRC, KC_RBRC, KC_TILD, _______, _______, _______, _______, _______, _______, _______},
-  {_______,       _______,     _______, _______, _______, _______, _______, _______, _______, _______, _______, _______}
+  {KC_F9,         KC_F10,      KC_F11, _______, _______, _______, _______, _______, _______, _______, _______, _______}
 },
 
 /* Adjust (Lower + Raise)
