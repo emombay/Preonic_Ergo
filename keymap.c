@@ -1,5 +1,6 @@
 #include "preonic.h"
 #include "action_layer.h"
+#include "action_util.h"
 #include "eeconfig.h"
 #ifdef AUDIO_ENABLE
   #include "audio.h"
@@ -19,6 +20,13 @@
 #define _ADJUST 16
 #define ALTTAB 1
 #define CTRLWIN 2
+
+// Tapdance
+enum {
+  TD_FUN = 0,
+  TD_3EQ,
+  TD_2EQ
+};
 
 enum preonic_keycodes {
   WRKMN = SAFE_RANGE,
@@ -165,9 +173,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * ,-----------------------------------------------------------------------------------.
  * |      |      |      |      |      |      |      |      |      |      |      |      |
  * |------+------+------+------+------+------+------+------+------+------+------+------|
- * |   +  |   =  |   {  |   }  |   |  |      |      |      |      |      |      |      |
+ * |   +  |   =  |   {  |   }  |   |  |      |      |      |TD_2EQ|      |      |      |
  * |------+------+------+------+------+-------------+------+------+------+------+------|
- * |   &  |   -  |   (  |   )  |   `  |      |      |      |      |      |      |      |
+ * |   &  |   -  |   (  |   )  |   `  |      |      |      |TD_3EQ|TD_FUN|      |      |
  * |------+------+------+------+------+------|------+------+------+------+------+------|
  * |   <  |   >  |   [  |   ]  |   ~  |      |      |      |      |      |      |      |
  * |------+------+------+------+------+------+------+------+------+------+------+------|
@@ -175,11 +183,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * `-----------------------------------------------------------------------------------'
  */
 [_CODE] = {
-  {_______,        _______,    _______, _______, _______, _______, _______, _______, _______, _______, _______, _______},
-  {LSFT(KC_EQL),  KC_EQL,      KC_LCBR, KC_RCBR, KC_PIPE, _______, _______, _______, _______, _______, _______, _______},
-  {LSFT(KC_7),    KC_MINS,     KC_LPRN, KC_RPRN, KC_GRV,  _______, _______, _______, _______, _______, _______, _______},
-  {LSFT(KC_COMM),LSFT(KC_DOT), KC_LBRC, KC_RBRC, KC_TILD, _______, _______, _______, _______, _______, _______, _______},
-  {KC_F9,         KC_F10,      KC_F11, _______, _______, _______, _______, _______, _______, _______, _______, _______}
+  {_______,        _______,    _______, _______, _______, _______, _______, _______, _______,    _______,    _______, _______},
+  {LSFT(KC_EQL),  KC_EQL,      KC_LCBR, KC_RCBR, KC_PIPE, _______, _______, _______, TD(TD_2EQ), _______,    _______, _______},
+  {LSFT(KC_7),    KC_MINS,     KC_LPRN, KC_RPRN, KC_GRV,  _______, _______, _______, TD(TD_3EQ), TD(TD_FUN), _______, _______},
+  {LSFT(KC_COMM),LSFT(KC_DOT), KC_LBRC, KC_RBRC, KC_TILD, _______, _______, _______, _______,    _______,    _______, _______},
+  {KC_F9,         KC_F10,      KC_F11,  _______, _______, _______, _______, _______, _______,    _______,    _______, _______}
 },
 
 /* Adjust (Lower + Raise)
@@ -188,7 +196,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * |------+------+------+------+------+------+------+------+------+------+------+------|
  * |      | Reset|      |      |      |      |      |      |BACKLT|      |      |  Del |
  * |------+------+------+------+------+------+------+------+------+------+------+------|
- * |      |      |      |Audoff|Aud on|      |      |      |WRKMN |QWERTY|Dvorak|      |
+ * |      |      |      |Audoff|Aud on|      |      |      |WRKMN |QWERTY|      |      |
  * |------+------+------+------+------+------+------+------+------+------+------+------|
  * |      |Voice-|Voice+|Musoff|Mus on|      |      |AGnorm|AGswap|      |      |      |
  * |------+------+------+------+------+------+------+------+------+------+------+------|
@@ -198,7 +206,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 [_ADJUST] = {
   {KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12},
   {_______, RESET,   _______, _______, _______, _______, _______, _______, BACKLIT, _______, _______, KC_DEL},
-  {_______, _______, _______, AU_ON,   AU_OFF,  _______, _______, _______, WRKMN,   QWERTY,  COLEMAK, _______},
+  {_______, _______, _______, AU_OFF,  AU_ON,   _______, _______, _______, WRKMN,   QWERTY,  _______, _______},
   {_______, MUV_DE,  MUV_IN,  MU_ON,   MU_OFF,  _______, _______, _______, AG_NORM, AG_SWAP, _______, _______},
   {_______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______}
 }
@@ -222,6 +230,84 @@ float tone_goodbye[][2] = SONG(GOODBYE_SOUND);
 
 float music_scale[][2]     = SONG(MUSIC_SCALE_SOUND);
 #endif
+
+#define TAP_ONCE(code)  \
+  register_code (code); \
+  unregister_code (code)
+
+static void m_tapn (uint8_t code, ...) {
+  uint8_t kc = code;
+  va_list ap;
+
+  va_start(ap, code);
+  do {
+    register_code(kc);
+    unregister_code(kc);
+    wait_ms(50);
+    kc = va_arg(ap, int);
+  } while (kc != 0);
+  va_end(ap);
+}
+
+void dance_eq (qk_tap_dance_state_t *state, void *user_data) {
+  switch (state->count) {
+    case 1: // ===
+      m_tapn(KC_EQL, KC_EQL, KC_EQL, 0);
+      break;
+    case 2: // !==
+      register_code(KC_LSHIFT);
+      m_tapn(KC_1, 0);
+      unregister_code(KC_LSHIFT);
+      m_tapn(KC_EQL, KC_EQL, 0);
+      break;
+    default:
+      reset_tap_dance(state);
+  }
+}
+
+void dance_two_eq (qk_tap_dance_state_t *state, void *user_data) {
+  switch (state->count) {
+    case 1: // ==
+      m_tapn(KC_EQL, KC_EQL, 0);
+      break;
+    case 2: // !=
+      register_code(KC_LSHIFT);
+      m_tapn(KC_1, 0);
+      unregister_code(KC_LSHIFT);
+      m_tapn(KC_EQL, 0);
+      break;
+    default:
+      reset_tap_dance(state);
+  }
+}
+
+void dance_fun (qk_tap_dance_state_t *state, void *user_data) {
+  switch (state->count) {
+    case 1: // =>    
+      m_tapn(KC_EQL, 0);
+      register_code(KC_LSFT);
+      m_tapn(KC_DOT, 0);
+      unregister_code(KC_LSFT);
+      break;
+    case 2: // () => {}
+      register_code(KC_LSFT);
+      m_tapn(KC_9, KC_0, KC_SPC, 0);
+      unregister_code(KC_LSFT);
+      m_tapn(KC_EQL, 0);
+      register_code(KC_LSFT);
+      m_tapn(KC_DOT, KC_SPC, KC_LBRC, KC_RBRC, 0);
+      unregister_code(KC_LSFT);
+      break;
+    default:
+      reset_tap_dance(state);
+  }
+}
+
+qk_tap_dance_action_t tap_dance_actions[] = {
+ [TD_FUN] = ACTION_TAP_DANCE_FN (dance_fun)
+ ,[TD_3EQ] = ACTION_TAP_DANCE_FN (dance_eq)
+ ,[TD_2EQ] = ACTION_TAP_DANCE_FN (dance_two_eq)
+};
 
 void persistant_default_layer_set(uint16_t default_layer) {
   eeconfig_update_default_layer(default_layer);
